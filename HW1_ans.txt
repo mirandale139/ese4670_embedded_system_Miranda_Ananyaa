@@ -1,7 +1,49 @@
 ESE4670 HW1
 Miranda Le, Ananyaa Srivatsan
 
-Q1.
-Q2.
-Q3.
-Q4.
+Q: Explain the process of creating a new project.  What settings are necessary to utilize the built-in LED and Serial Monitor?
+To create a new project, we start by clicking the Raspberry Pi Pico icon in the VS Code left sidebar and choosing "New Project". Then, we type in a project name, select our board type "Pico 2W", and pick a folder for the files to go into. We chose USB option instead of UART. Next, we just click "Create" and tell VS Code we trust the authors. 
+To use the Serial Monitor, we have to look under the "STDIO support" section during setup. We need to select the "USB CDC" console, which allows the input and output to travel directly over the USB cable connected to the computer.
+
+Q: Were there any inconsistencies in behavior?  If so, what do you need to check carefully in future work?
+We didn't many inconsistencies.
+
+## GPIO: Simple Input
+
+Q: Explain the lines of code used to setup the button.
+Here is how we set up the button in our code:
+gpio_init(BUTTON_PIN); gets the specific pin ready to be used.
+gpio_set_dir(BUTTON_PIN, GPIO_IN); configures the pin to act as an input so it can read the button.
+gpio_pull_up(BUTTON_PIN); turns on the internal pull-up resistor. This makes the pin read as a 1 (idle) when the button is left alone, and a 0 when the button is pressed.
+
+Q: Explain the lines of code used to poll the button.
+To poll the button, we use a loop:
+We put bool pressed = !gpio_get(BUTTON_PIN); inside a while (true) loop to constantly read the pin's state. We use the ! to flip the value so our pressed variable reads as true when the button is pushed.
+We use sleep_ms(1); to pause the loop for 1 millisecond between each check, which sets our polling interval.
+
+## GPIO: Interrupts
+
+Q: Explain the lines of code used for setting up the interrupt handler (the code that runs when an interrupt happens)
+Looking at the provided GPIO_Interrupts.c code, we actually didn't use a hardware interrupt handler function. Instead, we simulated edge detection inside our main polling loop! We set it up by creating variables to track the state:
+bool last_pressed = !gpio_get(BUTTON_PIN); stores the initial state of the button before the loop starts.
+int rising_edge = 0, falling_edge = 0; creates variables to keep track of how many times the button state changes.
+
+Q: Explain the code in the interrupt handler (the code that's actually run when an interrupt happens).
+Our simulated "handler" is the if (pressed != last_pressed) block inside the loop, which triggers only when a real change happens:
+Inside this block, we check if (pressed) to see if the button just went down. If it did, we add 1 to the rising_edge counter.
+If it didn't (else), it means the button was just let go, so we add 1 to the falling_edge counter.
+Finally, we update last_pressed = pressed; so the program is ready to catch the next change.
+
+Q: There's the phrase that "What goes up must come down" -- this is generally true for digital signals.  Was the number of rising edges always within 1 of the number of falling edges?  If not, explain what may have caused the discrepancy. 
+Yes, because when we press and release the button, both the number of rising and falling edges go up together.
+
+## GPIO: Simple Outputs
+
+Q: Justify the circuit and it's impact on the power/voltage/current limits of the Pico.  That is, provide clear evidence/proof that the way the LED is connected is within the limits of the Pico.
+The Pico's GPIO pins output 3.3V. A standard red LED typically requires a forward voltage of about 1.8V to 2.0V to turn on. According to Ohm's law (V = I * R), we can calculate the current. The voltage dropping across our provided 220 Ohm resistor is the remaining voltage: 3.3V - 1.8V = 1.5V.
+So, 1.5V / 220Ohm = ~0.0068 Amps, or 6.8 milliamps (mA).
+The RP2350 datasheet shows that a single GPIO pin can safely source around 12mA of current. 
+
+Q: Imagine you want to connect more LEDs.  Will power/voltage/current limits be an issue?  If so, how may you overcome any limitations?
+Yes, it will definitely be an issue. While one pin can handle 6.8mA, the Pico's chip has a total maximum current limit for all GPIO pins combined (often around 50mA total).
+To overcome this, we can use a transistor (like a MOSFET). Instead of powering the LEDs directly from the GPIO pins, we would connect the LEDs directly to the main power supply through the transistor. The Pico's GPIO pin would only need to send a tiny, low-current signal to the transistor to flip it "on" or "off" like a switch
