@@ -24,18 +24,18 @@ We use sleep_ms(1); to pause the loop for 1 millisecond between each check, whic
 ## GPIO: Interrupts
 
 Q5: Explain the lines of code used for setting up the interrupt handler (the code that runs when an interrupt happens)
-Looking at the provided GPIO_Interrupts.c code, we actually didn't use a hardware interrupt handler function. Instead, we simulated edge detection inside our main polling loop! We set it up by creating variables to track the state:
+We simulated edge detection inside our main polling loop. We set it up by creating variables to track the state:
 bool last_pressed = !gpio_get(BUTTON_PIN); stores the initial state of the button before the loop starts.
 int rising_edge = 0, falling_edge = 0; creates variables to keep track of how many times the button state changes.
 
 Q6: Explain the code in the interrupt handler (the code that's actually run when an interrupt happens).
-Our simulated "handler" is the if (pressed != last_pressed) block inside the loop, which triggers only when a real change happens:
+Our simulated handler is the if (pressed != last_pressed) block inside the loop, which triggers only when a real change happens:
 Inside this block, we check if (pressed) to see if the button just went down. If it did, we add 1 to the rising_edge counter.
 If it didn't (else), it means the button was just let go, so we add 1 to the falling_edge counter.
 Finally, we update last_pressed = pressed; so the program is ready to catch the next change.
 
 Q7: There's the phrase that "What goes up must come down" -- this is generally true for digital signals.  Was the number of rising edges always within 1 of the number of falling edges?  If not, explain what may have caused the discrepancy. 
-Yes, because when we press and release the button, both the number of rising and falling edges go up together.
+Yes, because when we press and release the button or vice versa, there are always 2 changes in states (up-down-up or down-up-down), both the number of rising and falling edges go up together.
 
 ## GPIO: Simple Outputs
 
