@@ -3,32 +3,38 @@
 
 #define BUTTON_PIN 3
 
+volatile uint32_t rising_edges = 0;    // low to high
+volatile uint32_t falling_edges = 0;   // high to low
+
+void button_press(uint gpio, uint32_t events) {
+
+    if (gpio != BUTTON_PIN) return;
+
+    if (events & GPIO_IRQ_EDGE_RISE) {
+        rising_edges++;
+    }
+    if (events & GPIO_IRQ_EDGE_FALL) {
+        falling_edges++;
+    }
+}
+
 int main() {
-    stdio_init_all();               // enable serial output (USB/UART)
+    stdio_init_all();
 
     gpio_init(BUTTON_PIN);
     gpio_set_dir(BUTTON_PIN, GPIO_IN);
-    gpio_pull_up(BUTTON_PIN);       // input pull-up: idle = 1, pressed = 0
+    gpio_pull_up(BUTTON_PIN);    // idle = 1, pressed = 0
 
-    bool last_pressed = !gpio_get(BUTTON_PIN);  // active-low
-    int rising_edge = 0, falling_edge = 0;
+    // Interrupt on both rising and falling edges
+    gpio_set_irq_enabled_with_callback(
+        BUTTON_PIN,
+        GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
+        true,
+        &button_press);
+
 
     while (true) {
-        bool pressed = !gpio_get(BUTTON_PIN);
-
-        if (pressed != last_pressed) {      // still a real change
-            if (pressed) {
-                rising_edge++;
-            }
-            else {
-                falling_edge++;
-            }
-
-            last_pressed = pressed;
-        }
-
-        printf("rising edges: %d \t falling edges: %d \n", rising_edge, falling_edge);
-
-        sleep_ms(10);                            // polling interval
+        printf("rising edges: %d \t falling edges: %d \n", rising_edges, falling_edges);
+        sleep_ms(100);
     }
 }
